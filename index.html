@@ -212,6 +212,10 @@
       box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
     }
 
+    .info-label::before {
+      content: "info";
+    }
+
     @media (max-width: 768px) {
       .main {
         flex-direction: column;
@@ -270,6 +274,10 @@
       nav {
         margin-right: 15px;
       }
+
+      .info-label::before {
+        content: "i";
+      }
     }
   </style>
 </head>
@@ -309,14 +317,15 @@
         <div class="day"></div><div class="day"></div><div class="day"></div>
         <div class="day"><div class="day-number">1</div></div>
         <div class="day"><div class="day-number">2</div></div>
-        <div class="day">
-          <div class="day-number">3</div>
-        </div>
+        <div class="day"><div class="day-number">3</div></div>
         <div class="day"><div class="day-number">4</div></div>
         <div class="day"><div class="day-number">5</div></div>
         <div class="day"><div class="day-number">6</div></div>
         <div class="day"><div class="day-number">7</div></div>
-        <div class="day today"><div class="day-number">8</div><a href="teplice.html">[více]</a></div>
+        <div class="day today">
+          <div class="day-number">8</div>
+          <a href="teplice.html"><span class="info-label"></span></a>
+        </div>
         <div class="day"><div class="day-number">9</div></div>
         <div class="day"><div class="day-number">10</div></div>
         <div class="day"><div class="day-number">11</div></div>
