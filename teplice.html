@@ -113,10 +113,23 @@
       margin: 8px 0;
     }
 
-    .route-container img.trasa {
-      max-width: 100%;
-      height: auto; 
-      margin: auto;
+    .responsive-iframe {
+      position: relative;
+      width: 100%;
+      padding-bottom: 52.02%; 
+      height: 0;
+      overflow: hidden;
+      border-radius: 15px;
+      box-shadow: var(--shadow);
+    }
+
+    .responsive-iframe iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
     }
 
     .slogan {
@@ -159,6 +172,9 @@
       <img src="logo.png" alt="Logo">
     </a>
     <nav>
+      <a href="https://www.strava.com/clubs/1535566" target="_blank">
+        <img src="strava.png" alt="Strava">
+      </a>
       <a href="https://www.instagram.com/dohaku.cc" target="_blank">
         <img src="instagram.png" alt="Instagram">
       </a>
@@ -173,19 +189,21 @@
       <div class="left">
         <div class="info-box">
           <h2>teplice</h2>
-          <p><strong>neděle 8.června 13:00</strong> </p>
-          <p><strong>start</strong>  západní nádraží</p>
-          <p><strong>lenght</strong>  60km</p>
-          <p><strong>elevation</strong>  500m</p>
-          <p><strong>pace</strong>  social pace</p>
-          <p><strong>coffee stop</strong>  teplice/unl</p>
+          <p><strong>neděle 8. června 13:00</strong></p>
+          <p><strong>start</strong> západní nádraží</p>
+          <p><strong>lenght</strong> 60km</p>
+          <p><strong>elevation</strong> 500m</p>
+          <p><strong>pace</strong> social pace</p>
+          <p><strong>coffee stop</strong> teplice/unl</p>
         </div>
       </div>
 
       <div class="right">
         <div class="route-container">
           <div class="route-title"><strong>trasa</strong></div>
-          <img src="trasa.png" alt="trasa výletu" class="trasa">
+          <div class="responsive-iframe">
+            <iframe src="https://mapy.com/s/kehuneguro" allowfullscreen></iframe>
+          </div>
         </div>
       </div>
     </div>
