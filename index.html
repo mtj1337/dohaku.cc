@@ -182,6 +182,7 @@
     .calendar .today {
       background-color: #c2c1c1;
       border-color: #a8a8a8;
+      /* Zvýrazňuje dny, kdy se konají události */
     }
 
     .calendar .day a {
@@ -355,7 +356,6 @@
     function updateCalendar() {
       // Get current date
       const currentDate = new Date();
-      const currentDay = currentDate.getDate();
       const currentMonth = currentDate.getMonth();
       const currentYear = currentDate.getFullYear();
       
@@ -407,31 +407,35 @@
         const dayCell = document.createElement('div');
         dayCell.className = 'day';
         
-        // Mark the current day
-        if (day === currentDay) {
+        // Get events for this day
+        const hasHardcodedEvent = (currentMonth === 5 && day === 8); // Teplice event on June 8th
+        const dayEvents = currentMonthEvents.filter(event => event.day === day);
+        const hasEvents = hasHardcodedEvent || dayEvents.length > 0;
+
+        // Mark days with events instead of current day
+        if (hasEvents) {
           dayCell.classList.add('today');
         }
-        
+
         // Add the day number
         const dayNumber = document.createElement('div');
         dayNumber.className = 'day-number';
         dayNumber.textContent = day;
         dayCell.appendChild(dayNumber);
-        
+
         // Add hardcoded event for June 8th (teplice event)
-        if (currentMonth === 5 && day === 8) { // June is month 5 (0-indexed)
+        if (hasHardcodedEvent) {
           const eventLink = document.createElement('a');
           eventLink.href = 'teplice.html';
-          
+
           const infoLabel = document.createElement('span');
           infoLabel.className = 'info-label';
-          
+
           eventLink.appendChild(infoLabel);
           dayCell.appendChild(eventLink);
         }
-        
+
         // Add dynamic events from localStorage
-        const dayEvents = currentMonthEvents.filter(event => event.day === day);
         for (const event of dayEvents) {
           // Skip if it's the teplice event we already added
           if (currentMonth === 5 && day === 8 && event.pageName === 'teplice') {
