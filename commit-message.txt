@@ -1,0 +1,34 @@
+Implement complete admin system with event management
+
+This commit includes a comprehensive overhaul of the website with several major features:
+
+Authentication & Security:
+- Redesigned login page with cleaner interface
+- Implemented secure authentication with SHA-256 password hashing
+- Added credentials storage in JSON format
+- Protected admin area with authentication checks
+
+Admin Panel:
+- Created new admin.html with protected access
+- Translated entire admin interface to Czech
+- Implemented logout functionality
+- Added responsive design for all screen sizes
+
+Event Management System:
+- Added event creation form with validation
+- Implemented event editing functionality
+- Added event deletion with confirmation
+- Created event listing with sorting by date
+- Implemented automatic calendar updates on the main page
+- Added file download system for created/edited HTML pages
+
+Calendar Integration:
+- Connected admin events to main page calendar
+- Implemented automatic calendar refresh
+- Added cross-tab synchronization for calendar updates
+
+UI Improvements:
+- Consistent styling across all pages
+- Improved form validation with helpful error messages
+- Added responsive design elements
+- Enhanced user experience with confirmation dialogs
