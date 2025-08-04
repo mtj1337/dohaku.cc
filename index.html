@@ -341,7 +341,7 @@
       setInterval(checkForCalendarUpdates, 5000);
     });
     
-    // Function to check if calendar has been updated in another tab
+    // Function to check if calendar has been updated in another tab or na serveru
     function checkForCalendarUpdates() {
       const calendarUpdated = localStorage.getItem('calendarUpdated');
       if (calendarUpdated === 'true') {
@@ -350,7 +350,28 @@
         // Update the calendar
         updateCalendar();
         console.log('Calendar updated due to changes in admin panel');
+        return;
       }
+
+      // Také kontrolujeme, zda nebyly provedeny změny na serveru
+      fetch('events.json?cachebust=' + new Date().getTime())
+        .then(response => response.json())
+        .then(serverEvents => {
+          // Porovnáme se současnými událostmi v localStorage
+          try {
+            const localEvents = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
+            // Jednoduchá kontrola, zda je počet událostí stejný
+            if (JSON.stringify(serverEvents) !== JSON.stringify(localEvents)) {
+              console.log('Detected calendar updates from server');
+              updateCalendar();
+            }
+          } catch (error) {
+            console.error('Error comparing events:', error);
+          }
+        })
+        .catch(error => {
+          console.error('Error checking for server updates:', error);
+        });
     }
     
     function updateCalendar() {
@@ -378,13 +399,34 @@
       ];
       document.getElementById('calendar-month').textContent = `${monthNames[currentMonth]} ${currentYear}`;
       
-      // Get events from localStorage
-      let events = [];
-      try {
-        events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
-      } catch (error) {
-        console.error('Error loading calendar events:', error);
-      }
+      // Načtení událostí ze serveru
+      fetch('events.json')
+        .then(response => response.json())
+        .then(serverEvents => {
+          // Uložíme do localStorage pro kompatibilitu
+          localStorage.setItem('calendarEvents', JSON.stringify(serverEvents));
+          // Pokračujeme s vykreslením kalendáře
+          renderCalendar(serverEvents, currentMonth, currentYear, firstDayWeekday, daysInMonth);
+        })
+        .catch(error => {
+          console.error('Error loading events from server:', error);
+          // Fallback na localStorage v případě chyby
+          let events = [];
+          try {
+            events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
+          } catch (e) {
+            console.error('Error loading calendar events from localStorage:', e);
+          }
+          renderCalendar(events, currentMonth, currentYear, firstDayWeekday, daysInMonth);
+        });
+          }
+
+          // Function to render the calendar with events
+          function renderCalendar(events, currentMonth, currentYear, firstDayWeekday, daysInMonth) {
+      // Filter events for the current month and year
+      const currentMonthEvents = events.filter(event => 
+        event.month === currentMonth && event.year === currentYear
+      );
       
       // Filter events for the current month and year
       const currentMonthEvents = events.filter(event => 
@@ -435,7 +477,7 @@
           dayCell.appendChild(eventLink);
         }
 
-        // Add dynamic events from localStorage
+        // Add dynamic events from the loaded events
         for (const event of dayEvents) {
           // Skip if it's the teplice event we already added
           if (currentMonth === 5 && day === 8 && event.pageName === 'teplice') {

@@ -170,32 +170,81 @@
         // Remove the event from the array
         events.splice(index, 1);
         
-        // Save the updated events back to localStorage
-        localStorage.setItem('calendarEvents', JSON.stringify(events));
-        
-        // Show success message
-        toastr.success('Event byl úspěšně smazán.');
-        
+        // Pokus o aktualizaci serverového souboru
+        fetch('events.json')
+          .then(response => response.json())
+          .then(serverEvents => {
+            // Aktualizujeme serverový seznam událostí
+            const updatedEvents = serverEvents.filter(e => 
+              !(e.pageName === event.pageName && e.day === event.day && 
+                e.month === event.month && e.year === event.year)
+            );
+
+            // Pro stažení aktualizovaného JSON souboru
+            const blob = new Blob([JSON.stringify(updatedEvents, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'events.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            // Uložíme také do localStorage
+            localStorage.setItem('calendarEvents', JSON.stringify(events));
+
+            // Show success message
+            toastr.success('Event byl úspěšně smazán. Nahrajte aktualizovaný soubor events.json na server.');
+          })
+          .catch(error => {
+            console.error('Error updating server events:', error);
+            // Fallback na localStorage v případě chyby
+            localStorage.setItem('calendarEvents', JSON.stringify(events));
+            toastr.warning('Event byl smazán pouze lokálně. Pro aktualizaci na serveru nahrajte events.json.');
+          });
+
         // Reload the events list
         loadEvents();
-        
+
         // Update the calendar on the main page if it's open in another tab
-        // This is done by setting a flag that the main page will check
         localStorage.setItem('calendarUpdated', 'true');
       }
     }
     
-    // Function to load events from localStorage and display them
+    // Function to load events from server and display them
     function loadEvents() {
       const eventsListContainer = document.getElementById('events-list');
-      
-      // Get events from localStorage
-      let events = [];
-      try {
-        events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
-      } catch (error) {
-        console.error('Error loading events:', error);
-        eventsListContainer.innerHTML = '<p class="no-events">Chyba při načítání eventů.</p>';
+      eventsListContainer.innerHTML = '<p class="no-events">Načítání událostí...</p>';
+
+      // Nejprve zkusíme načíst události ze serveru
+      fetch('events.json')
+        .then(response => response.json())
+        .then(serverEvents => {
+          // Uložíme do localStorage pro další použití
+          localStorage.setItem('calendarEvents', JSON.stringify(serverEvents));
+          displayEvents(serverEvents, eventsListContainer);
+        })
+        .catch(error => {
+          console.error('Error loading events from server:', error);
+          // Fallback na localStorage v případě chyby
+          let events = [];
+          try {
+            events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
+            displayEvents(events, eventsListContainer);
+            toastr.warning('Události byly načteny pouze z lokálního úložiště. Připojení k serveru selhalo.');
+          } catch (error) {
+            console.error('Error loading events from localStorage:', error);
+            eventsListContainer.innerHTML = '<p class="no-events">Chyba při načítání eventů.</p>';
+          }
+        });
+    }
+
+    // Function to display events in the container
+    function displayEvents(events, container) {
+      // Check if there are any events
+      if (events.length === 0) {
+        container.innerHTML = '<p class="no-events">Žádné eventy nenalezeny. Vytvořte event, aby se zde zobrazil.</p>';
         return;
       }
       
@@ -793,26 +842,58 @@
         }
       }
       
-      // Function to save event to localStorage for the calendar
+      // Function to save event to server for the calendar
       function saveEventToCalendar(pageName, eventTitle, date) {
         try {
-          // Get existing events from localStorage
-          let events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
-          
-          // Add the new event
-          events.push({
-            pageName: pageName,
-            title: eventTitle,
-            day: date.day,
-            month: date.month,
-            year: date.year
-          });
-          
-          // Save back to localStorage
-          localStorage.setItem('calendarEvents', JSON.stringify(events));
-          console.log('Event saved to calendar:', pageName, date);
+          // Nejprve načteme existující události ze souboru
+          fetch('events.json')
+            .then(response => response.json())
+            .then(events => {
+              // Přidáme novou událost
+              events.push({
+                pageName: pageName,
+                title: eventTitle,
+                day: date.day,
+                month: date.month,
+                year: date.year
+              });
+
+              // Pro stažení aktualizovaného JSON souboru
+              const blob = new Blob([JSON.stringify(events, null, 2)], { type: 'application/json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = 'events.json';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+
+              // Uložíme také do localStorage pro okamžité zobrazení v admin panelu
+              localStorage.setItem('calendarEvents', JSON.stringify(events));
+              console.log('Event saved to calendar:', pageName, date);
+
+              toastr.success('Událost byla uložena. Nahrajte soubor events.json na server, aby byla viditelná pro všechny uživatele.');
+            })
+            .catch(error => {
+              console.error('Error loading events from server:', error);
+              // Fallback na localStorage v případě chyby
+              let events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
+
+              events.push({
+                pageName: pageName,
+                title: eventTitle,
+                day: date.day,
+                month: date.month,
+                year: date.year
+              });
+
+              localStorage.setItem('calendarEvents', JSON.stringify(events));
+              toastr.warning('Událost byla uložena pouze lokálně. Pro sdílení s ostatními uživateli je potřeba nahrát soubor na server.');
+            });
         } catch (error) {
           console.error('Error saving event to calendar:', error);
+          toastr.error('Chyba při ukládání události.');
         }
       }
       
