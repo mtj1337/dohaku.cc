@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>dohaku - Admin Panel</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary-bg: #ffffff;
+      --light-gray: #e0e0e0;
+      --text-gray: #666;
+      --shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Montserrat', sans-serif;
+      background-color: var(--primary-bg);
+      color: #222;
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: var(--primary-bg);
+      padding: 15px 20px;
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header img {
+      height: 40px;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .logout-btn {
+      padding: 8px 15px;
+      background-color: #464545;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 8px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background-color 0.2s;
+    }
+
+    .logout-btn:hover {
+      background-color: #333;
+    }
+
+    .main {
+      flex: 1;
+      padding: 30px;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .admin-title {
+      font-size: 24px;
+      margin-bottom: 20px;
+      color: #333;
+    }
+
+    .admin-card {
+      background-color: var(--primary-bg);
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+
+    .admin-card h3 {
+      margin-top: 0;
+      color: #333;
+    }
+
+    @media (max-width: 768px) {
+      .main {
+        padding: 20px 15px;
+      }
+    }
+  </style>
+  <script>
+    // Configure toastr
+    toastr.options = {
+      closeButton: true,
+      progressBar: true,
+      positionClass: "toast-top-right",
+      timeOut: 5000
+    };
+    
+    // Check if user is authenticated
+    document.addEventListener('DOMContentLoaded', function() {
+      // Check if user is authenticated by verifying credentials
+      checkAuthentication();
+      
+      // Set up logout button
+      document.getElementById('logout-btn').addEventListener('click', function() {
+        // Clear any authentication state
+        localStorage.removeItem('isAuthenticated');
+        // Redirect to login page
+        window.location.href = 'login.html';
+      });
+      
+      // Set up refresh events button
+      document.getElementById('refresh-events-btn').addEventListener('click', function() {
+        loadEvents();
+        toastr.info('Seznam eventů byl obnoven');
+      });
+      
+      // Load and display events
+      loadEvents();
+    });
+    
+    // Function to delete an event
+    function deleteEvent(index) {
+      // Get events from localStorage
+      let events = [];
+      try {
+        events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
+      } catch (error) {
+        console.error('Error loading events for deletion:', error);
+        toastr.error('Smazání eventu se nezdařilo. Zkuste to prosím znovu.');
+        return;
+      }
+      
+      // Check if index is valid
+      if (index < 0 || index >= events.length) {
+        toastr.error('Neplatný index eventu.');
+        return;
+      }
+      
+      // Get event details for confirmation message
+      const event = events[index];
+      const monthNames = [
+        'Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen',
+        'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec'
+      ];
+      const eventDate = `${event.day}. ${monthNames[event.month]} ${event.year}`;
+      
+      // Confirm deletion
+      if (confirm(`Opravdu chcete smazat event "${event.title}" dne ${eventDate}?`)) {
+        // Remove the event from the array
+        events.splice(index, 1);
+        
+        // Save the updated events back to localStorage
+        localStorage.setItem('calendarEvents', JSON.stringify(events));
+        
+        // Show success message
+        toastr.success('Event byl úspěšně smazán.');
+        
+        // Reload the events list
+        loadEvents();
+        
+        // Update the calendar on the main page if it's open in another tab
+        // This is done by setting a flag that the main page will check
+        localStorage.setItem('calendarUpdated', 'true');
+      }
+    }
+    
+    // Function to load events from localStorage and display them
+    function loadEvents() {
+      const eventsListContainer = document.getElementById('events-list');
+      
+      // Get events from localStorage
+      let events = [];
+      try {
+        events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
+      } catch (error) {
+        console.error('Error loading events:', error);
+        eventsListContainer.innerHTML = '<p class="no-events">Chyba při načítání eventů.</p>';
+        return;
+      }
+      
+      // Check if there are any events
+      if (events.length === 0) {
+        eventsListContainer.innerHTML = '<p class="no-events">Žádné eventy nenalezeny. Vytvořte event, aby se zde zobrazil.</p>';
+        return;
+      }
+      
+      // Sort events by date (year, month, day)
+      events.sort((a, b) => {
+        if (a.year !== b.year) return a.year - b.year;
+        if (a.month !== b.month) return a.month - b.month;
+        return a.day - b.day;
+      });
+      
+      // Clear the loading message
+      eventsListContainer.innerHTML = '';
+      
+      // Format month names for display
+      const monthNames = [
+        'Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen',
+        'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec'
+      ];
+      
+      // Create HTML for each event
+      events.forEach((event, index) => {
+        const eventItem = document.createElement('div');
+        eventItem.className = 'event-item';
+        
+        const eventInfo = document.createElement('div');
+        eventInfo.className = 'event-info';
+        
+        const eventTitle = document.createElement('div');
+        eventTitle.className = 'event-title';
+        eventTitle.textContent = event.title;
+        
+        const eventDate = document.createElement('div');
+        eventDate.className = 'event-date';
+        eventDate.textContent = `${event.day}. ${monthNames[event.month]} ${event.year} - ${event.pageName}.html`;
+        
+        eventInfo.appendChild(eventTitle);
+        eventInfo.appendChild(eventDate);
+        
+        const eventActions = document.createElement('div');
+        eventActions.className = 'event-actions';
+        
+        // Create edit button
+        const editBtn = document.createElement('button');
+        editBtn.className = 'edit-btn';
+        editBtn.textContent = 'Upravit';
+        editBtn.dataset.index = index;
+        editBtn.addEventListener('click', function() {
+          editEvent(index);
+        });
+        
+        // Create delete button
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.textContent = 'Smazat';
+        deleteBtn.dataset.index = index;
+        deleteBtn.addEventListener('click', function() {
+          deleteEvent(index);
+        });
+        
+        eventActions.appendChild(editBtn);
+        eventActions.appendChild(deleteBtn);
+        
+        eventItem.appendChild(eventInfo);
+        eventItem.appendChild(eventActions);
+        
+        eventsListContainer.appendChild(eventItem);
+      });
+    }
+    
+    // Function to edit an event
+    function editEvent(index) {
+      // Get events from localStorage
+      let events = [];
+      try {
+        events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
+      } catch (error) {
+        console.error('Error loading events for editing:', error);
+        toastr.error('Načtení dat eventu se nezdařilo. Zkuste to prosím znovu.');
+        return;
+      }
+      
+      // Check if index is valid
+      if (index < 0 || index >= events.length) {
+        toastr.error('Invalid event index.');
+        return;
+      }
+      
+      // Get the event to edit
+      const event = events[index];
+      
+      // Get the modal and form elements
+      const modal = document.getElementById('event-editor-modal');
+      const form = document.getElementById('event-editor-form');
+      const closeBtn = modal.querySelector('.close-modal');
+      
+      // Set the event index in the hidden field
+      document.getElementById('edit-event-index').value = index;
+      
+      // Set the page name (readonly)
+      document.getElementById('edit-page-name').value = event.pageName;
+      
+      // Set the event title
+      document.getElementById('edit-event-title').value = event.title;
+      
+      // Format the date for display
+      const monthNames = [
+        'ledna', 'února', 'března', 'dubna', 'května', 'června',
+        'července', 'srpna', 'září', 'října', 'listopadu', 'prosince'
+      ];
+      
+      // Try to load the HTML file to get the full event details
+      fetch(`${event.pageName}.html`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Failed to load ${event.pageName}.html`);
+          }
+          return response.text();
+        })
+        .then(html => {
+          // Parse the HTML to extract event details
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          
+          // Extract event date
+          const dateElement = doc.querySelector('.info-box p:nth-child(2)');
+          if (dateElement) {
+            document.getElementById('edit-event-date').value = dateElement.textContent.replace('<strong>', '').replace('</strong>', '');
+          } else {
+            // Fallback to a basic date format if we can't find it in the HTML
+            document.getElementById('edit-event-date').value = `${event.day}. ${monthNames[event.month]} ${event.year}`;
+          }
+          
+          // Extract other event details
+          const startElement = doc.querySelector('.info-box p:nth-child(3)');
+          if (startElement) {
+            document.getElementById('edit-event-start').value = startElement.textContent.replace('<strong>start</strong> ', '');
+          }
+          
+          const lengthElement = doc.querySelector('.info-box p:nth-child(4)');
+          if (lengthElement) {
+            document.getElementById('edit-event-length').value = lengthElement.textContent.replace('<strong>lenght</strong> ', '');
+          }
+          
+          const elevationElement = doc.querySelector('.info-box p:nth-child(5)');
+          if (elevationElement) {
+            document.getElementById('edit-event-elevation').value = elevationElement.textContent.replace('<strong>elevation</strong> ', '');
+          }
+          
+          const paceElement = doc.querySelector('.info-box p:nth-child(6)');
+          if (paceElement) {
+            document.getElementById('edit-event-pace').value = paceElement.textContent.replace('<strong>pace</strong> ', '');
+          }
+          
+          const coffeeElement = doc.querySelector('.info-box p:nth-child(7)');
+          if (coffeeElement) {
+            document.getElementById('edit-event-coffee').value = coffeeElement.textContent.replace('<strong>coffee stop</strong> ', '');
+          }
+          
+          // Extract route URL
+          const iframeElement = doc.querySelector('.responsive-iframe iframe');
+          if (iframeElement && iframeElement.src) {
+            document.getElementById('edit-route-url').value = iframeElement.src;
+          }
+          
+          // Show the modal
+          modal.style.display = 'block';
+        })
+        .catch(error => {
+          console.error('Error loading event details:', error);
+          toastr.warning('Nelze načíst všechny detaily eventu. Některá pole mohou být prázdná.');
+          
+          // Show the modal even if we couldn't load all details
+          modal.style.display = 'block';
+        });
+      
+      // Close modal when X is clicked
+      closeBtn.addEventListener('click', function() {
+        modal.style.display = 'none';
+      });
+      
+      // Close modal when clicking outside of it
+      window.addEventListener('click', function(event) {
+        if (event.target === modal) {
+          modal.style.display = 'none';
+        }
+      });
+    }
+    
+    // Function to check if user is authenticated
+    async function checkAuthentication() {
+      const isAuthenticated = localStorage.getItem('isAuthenticated');
+      
+      if (!isAuthenticated) {
+        // If not authenticated, try to verify with server
+        try {
+          // Fetch credentials to check if they exist
+          const response = await fetch('credentials.json');
+          if (!response.ok) {
+            redirectToLogin();
+            return;
+          }
+          
+          // User is not authenticated, redirect to login page
+          redirectToLogin();
+        } catch (error) {
+          console.error('Authentication check error:', error);
+          redirectToLogin();
+        }
+      }
+    }
+    
+    // Function to redirect to login page
+    function redirectToLogin() {
+      // Redirect immediately without showing a popup
+      window.location.href = 'login.html';
+    }
+  </script>
+</head>
+<body>
+  <header>
+    <img src="logo.png" alt="Logo">
+    <div class="header-right">
+      <button id="logout-btn" class="logout-btn">Odhlásit se</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <h2 class="admin-title">Admin Panel</h2>
+    
+    <div class="admin-card">
+      <h3>Vítejte v Admin Panelu</h3>
+      <p>Tato sekce je zabezpečená a přístupná pouze pro autorizované uživatele.</p>
+    </div>
+    
+    
+    <div class="admin-card">
+      <h3>Správa webu</h3>
+      <p>Zde můžete spravovat obsah a nastavení vašeho webu.</p>
+      <button id="create-page-btn" class="action-btn">Vytvořit novou Event stránku</button>
+    </div>
+    
+    <div class="admin-card">
+      <h3>Správa Event</h3>
+      <p>Zobrazte a spravujte všechny eventy v kalendáři.</p>
+      <div class="events-header">
+        <button id="refresh-events-btn" class="action-btn">Refresh</button>
+      </div>
+      <div id="events-list" class="events-list">
+        <p class="loading-text">Načítání eventů...</p>
+      </div>
+    </div>
+    
+    <!-- Modal for creating new page -->
+    <div id="page-creator-modal" class="modal">
+      <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <h3>Vytvořit novou Event stránku</h3>
+        <form id="page-creator-form">
+          <div class="form-group">
+            <label for="page-name">Název stránky (URL bude [name].html):</label>
+            <input type="text" id="page-name" required placeholder="e.g. teplice">
+          </div>
+          
+          <div class="form-group">
+            <label for="event-title">Název Eventu:</label>
+            <input type="text" id="event-title" required placeholder="e.g. teplice">
+          </div>
+          
+          <div class="form-group">
+            <label for="event-date">Datum a čas Eventu:</label>
+            <input type="text" id="event-date" required placeholder="e.g. neděle 8. června 13:00">
+          </div>
+          
+          <div class="form-group">
+            <label for="event-start">Místo startu:</label>
+            <input type="text" id="event-start" required placeholder="e.g. západní nádraží">
+          </div>
+          
+          <div class="form-group">
+            <label for="event-length">Délka:</label>
+            <input type="text" id="event-length" required placeholder="e.g. 60km">
+          </div>
+          
+          <div class="form-group">
+            <label for="event-elevation">Převýšení:</label>
+            <input type="text" id="event-elevation" required placeholder="e.g. 500m">
+          </div>
+          
+          <div class="form-group">
+            <label for="event-pace">Tempo:</label>
+            <input type="text" id="event-pace" required placeholder="e.g. social pace">
+          </div>
+          
+          <div class="form-group">
+            <label for="event-coffee">Coffee Stop:</label>
+            <input type="text" id="event-coffee" required placeholder="e.g. teplice/unl">
+          </div>
+          
+          <div class="form-group">
+            <label for="route-url">URL mapy trasy:</label>
+            <input type="url" id="route-url" required placeholder="e.g. https://mapy.com/s/kehuneguro">
+          </div>
+          
+          <button type="submit" class="action-btn">Vytvořit stránku</button>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Modal for editing event -->
+    <div id="event-editor-modal" class="modal">
+      <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <h3>Upravit Event</h3>
+        <form id="event-editor-form">
+          <input type="hidden" id="edit-event-index">
+          
+          <div class="form-group">
+            <label for="edit-page-name">Název stránky:</label>
+            <input type="text" id="edit-page-name" required placeholder="e.g. teplice" readonly>
+            <small class="form-hint">Název stránky nelze změnit</small>
+          </div>
+          
+          <div class="form-group">
+            <label for="edit-event-title">Název Eventu:</label>
+            <input type="text" id="edit-event-title" required placeholder="e.g. teplice">
+          </div>
+          
+          <div class="form-group">
+            <label for="edit-event-date">Datum a čas Eventu:</label>
+            <input type="text" id="edit-event-date" required placeholder="e.g. neděle 8. června 13:00">
+          </div>
+          
+          <div class="form-group">
+            <label for="edit-event-start">Místo startu:</label>
+            <input type="text" id="edit-event-start" required placeholder="e.g. západní nádraží">
+          </div>
+          
+          <div class="form-group">
+            <label for="edit-event-length">Délka:</label>
+            <input type="text" id="edit-event-length" required placeholder="e.g. 60km">
+          </div>
+          
+          <div class="form-group">
+            <label for="edit-event-elevation">Převýšení:</label>
+            <input type="text" id="edit-event-elevation" required placeholder="e.g. 500m">
+          </div>
+          
+          <div class="form-group">
+            <label for="edit-event-pace">Tempo:</label>
+            <input type="text" id="edit-event-pace" required placeholder="e.g. social pace">
+          </div>
+          
+          <div class="form-group">
+            <label for="edit-event-coffee">Coffee Stop:</label>
+            <input type="text" id="edit-event-coffee" required placeholder="e.g. teplice/unl">
+          </div>
+          
+          <div class="form-group">
+            <label for="edit-route-url">URL mapy trasy:</label>
+            <input type="url" id="edit-route-url" required placeholder="e.g. https://mapy.com/s/kehuneguro">
+          </div>
+          
+          <button type="submit" class="action-btn">Uložit změny</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  
+  <style>
+    /* Styles for the button */
+    .action-btn {
+      padding: 10px 15px;
+      background-color: #464545;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 8px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      transition: background-color 0.2s;
+      margin-top: 15px;
+    }
+    
+    .action-btn:hover {
+      background-color: #333;
+    }
+    
+    /* Events list styles */
+    .events-header {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 15px;
+      margin-bottom: 15px;
+    }
+    
+    .events-list {
+      margin-top: 15px;
+    }
+    
+    .event-item {
+      background-color: var(--light-gray);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .event-info {
+      flex: 1;
+    }
+    
+    .event-title {
+      font-weight: 600;
+      margin-bottom: 5px;
+    }
+    
+    .event-date {
+      color: var(--text-gray);
+      font-size: 14px;
+    }
+    
+    .event-actions {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .edit-btn, .delete-btn {
+      padding: 6px 12px;
+      border: none;
+      color: white;
+      cursor: pointer;
+      border-radius: 6px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 12px;
+      transition: background-color 0.2s;
+    }
+    
+    .edit-btn {
+      background-color: #3498db;
+    }
+    
+    .edit-btn:hover {
+      background-color: #2980b9;
+    }
+    
+    .delete-btn {
+      background-color: #e74c3c;
+    }
+    
+    .delete-btn:hover {
+      background-color: #c0392b;
+    }
+    
+    .no-events {
+      color: var(--text-gray);
+      font-style: italic;
+      text-align: center;
+      padding: 20px 0;
+    }
+    
+    /* Modal styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 100;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.4);
+    }
+    
+    .modal-content {
+      background-color: #fefefe;
+      margin: 5% auto;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      width: 80%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    
+    .close-modal {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    
+    .close-modal:hover {
+      color: black;
+    }
+    
+    /* Form styles */
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--light-gray);
+      border-radius: 5px;
+      font-family: 'Montserrat', sans-serif;
+    }
+    
+    .form-hint {
+      display: block;
+      font-size: 12px;
+      color: var(--text-gray);
+      margin-top: 5px;
+      font-style: italic;
+    }
+    
+    
+  </style>
+  
+  <script>
+    // Modal functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const createModal = document.getElementById('page-creator-modal');
+      const editModal = document.getElementById('event-editor-modal');
+      const createBtn = document.getElementById('create-page-btn');
+      const createCloseBtn = createModal.querySelector('.close-modal');
+      const editCloseBtn = editModal.querySelector('.close-modal');
+      const createForm = document.getElementById('page-creator-form');
+      const editForm = document.getElementById('event-editor-form');
+      
+      // Set up edit form submission handler
+      editForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        updateEvent();
+      });
+      
+      // Function to validate URL format
+      function isValidUrl(string) {
+        try {
+          new URL(string);
+          return true;
+        } catch (_) {
+          return false;
+        }
+      }
+      
+      // Function to parse Czech date format like "neděle 8. června 13:00"
+      function parseEventDate(dateString) {
+        try {
+          // Extract the day number
+          const dayMatch = dateString.match(/(\d+)\./);
+          if (!dayMatch) return null;
+          const day = parseInt(dayMatch[1], 10);
+          
+          // Extract the month name
+          const monthNames = {
+            'ledna': 0, 'února': 1, 'března': 2, 'dubna': 3, 'května': 4, 'června': 5,
+            'července': 6, 'srpna': 7, 'září': 8, 'října': 9, 'listopadu': 10, 'prosince': 11
+          };
+          
+          let month = null;
+          for (const [monthName, monthIndex] of Object.entries(monthNames)) {
+            if (dateString.includes(monthName)) {
+              month = monthIndex;
+              break;
+            }
+          }
+          
+          if (month === null) return null;
+          
+          // Use current year as default
+          const year = new Date().getFullYear();
+          
+          return { day, month, year };
+        } catch (error) {
+          console.error('Error parsing date:', error);
+          return null;
+        }
+      }
+      
+      // Function to save event to localStorage for the calendar
+      function saveEventToCalendar(pageName, eventTitle, date) {
+        try {
+          // Get existing events from localStorage
+          let events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
+          
+          // Add the new event
+          events.push({
+            pageName: pageName,
+            title: eventTitle,
+            day: date.day,
+            month: date.month,
+            year: date.year
+          });
+          
+          // Save back to localStorage
+          localStorage.setItem('calendarEvents', JSON.stringify(events));
+          console.log('Event saved to calendar:', pageName, date);
+        } catch (error) {
+          console.error('Error saving event to calendar:', error);
+        }
+      }
+      
+      // Function to update an event
+      function updateEvent() {
+        // Get the event index from the hidden field
+        const index = parseInt(document.getElementById('edit-event-index').value, 10);
+        
+        // Get form values
+        const pageName = document.getElementById('edit-page-name').value.trim();
+        const eventTitle = document.getElementById('edit-event-title').value.trim();
+        const eventDate = document.getElementById('edit-event-date').value.trim();
+        const eventStart = document.getElementById('edit-event-start').value.trim();
+        const eventLength = document.getElementById('edit-event-length').value.trim();
+        const eventElevation = document.getElementById('edit-event-elevation').value.trim();
+        const eventPace = document.getElementById('edit-event-pace').value.trim();
+        const eventCoffee = document.getElementById('edit-event-coffee').value.trim();
+        const routeUrl = document.getElementById('edit-route-url').value.trim();
+        
+        // Validate all fields
+        let hasErrors = false;
+        
+        // Check if any required field is empty
+        if (!eventTitle || !eventDate || !eventStart || !eventLength || 
+            !eventElevation || !eventPace || !eventCoffee || !routeUrl) {
+          toastr.error('Všechna pole jsou povinná');
+          hasErrors = true;
+        }
+        
+        // Validate URL format
+        if (routeUrl && !isValidUrl(routeUrl)) {
+          toastr.error('Zadejte platnou URL pro mapu trasy');
+          hasErrors = true;
+        }
+        
+        if (hasErrors) {
+          return;
+        }
+        
+        // Parse the date from the event date string to update calendar
+        const parsedDate = parseEventDate(eventDate);
+        if (!parsedDate) {
+          toastr.error('Nelze rozpoznat datum eventu. Použijte formát jako "neděle 8. června 13:00"');
+          return;
+        }
+        
+        // Get events from localStorage
+        let events = [];
+        try {
+          events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
+        } catch (error) {
+          console.error('Error loading events for update:', error);
+          toastr.error('Aktualizace eventu se nezdařila. Zkuste to prosím znovu.');
+          return;
+        }
+        
+        // Check if index is valid
+        if (index < 0 || index >= events.length) {
+          toastr.error('Neplatný index eventu.');
+          return;
+        }
+        
+        // Update the event in the array
+        events[index] = {
+          pageName: pageName,
+          title: eventTitle,
+          day: parsedDate.day,
+          month: parsedDate.month,
+          year: parsedDate.year
+        };
+        
+        // Save the updated events back to localStorage
+        localStorage.setItem('calendarEvents', JSON.stringify(events));
+        
+        // Generate HTML content
+        const htmlContent = generateHtmlContent(
+          pageName, eventTitle, eventDate, eventStart, 
+          eventLength, eventElevation, eventPace, 
+          eventCoffee, routeUrl
+        );
+        
+        // Create a download link for the updated HTML file
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${pageName}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        // Show success message
+        toastr.success(`Event "${eventTitle}" byl aktualizován a stažen.`);
+        
+        // Close the modal
+        editModal.style.display = 'none';
+        
+        // Reload the events list
+        loadEvents();
+        
+        // Update the calendar on the main page if it's open in another tab
+        localStorage.setItem('calendarUpdated', 'true');
+      }
+      
+      // Open create modal when button is clicked
+      createBtn.addEventListener('click', function() {
+        createModal.style.display = 'block';
+      });
+      
+      // Close create modal when X is clicked
+      createCloseBtn.addEventListener('click', function() {
+        createModal.style.display = 'none';
+      });
+      
+      // Close edit modal when X is clicked
+      editCloseBtn.addEventListener('click', function() {
+        editModal.style.display = 'none';
+      });
+      
+      // Close modals when clicking outside of them
+      window.addEventListener('click', function(event) {
+        if (event.target === createModal) {
+          createModal.style.display = 'none';
+        } else if (event.target === editModal) {
+          editModal.style.display = 'none';
+        }
+      });
+      
+      // Handle create form submission
+      createForm.addEventListener('submit', function(event) {
+        event.preventDefault();
+        createNewPage();
+      });
+      
+      // Function to create a new page
+      function createNewPage() {
+        // Get form values
+        const pageName = document.getElementById('page-name').value.trim();
+        const eventTitle = document.getElementById('event-title').value.trim();
+        const eventDate = document.getElementById('event-date').value.trim();
+        const eventStart = document.getElementById('event-start').value.trim();
+        const eventLength = document.getElementById('event-length').value.trim();
+        const eventElevation = document.getElementById('event-elevation').value.trim();
+        const eventPace = document.getElementById('event-pace').value.trim();
+        const eventCoffee = document.getElementById('event-coffee').value.trim();
+        const routeUrl = document.getElementById('route-url').value.trim();
+        
+        // Validate all fields
+        let hasErrors = false;
+        
+        // Validate filename
+        if (!pageName) {
+          toastr.error('Název stránky je povinný');
+          hasErrors = true;
+        } else if (/[^a-z0-9-]/.test(pageName)) {
+          toastr.error('Název stránky by měl obsahovat pouze malá písmena, čísla a pomlčky');
+          hasErrors = true;
+        }
+        
+        // Check if any required field is empty
+        if (!eventTitle || !eventDate || !eventStart || !eventLength || 
+            !eventElevation || !eventPace || !eventCoffee || !routeUrl) {
+          toastr.error('Všechna pole jsou povinná');
+          hasErrors = true;
+        }
+        
+        // Validate URL format
+        if (routeUrl && !isValidUrl(routeUrl)) {
+          toastr.error('Zadejte platnou URL pro mapu trasy');
+          hasErrors = true;
+        }
+        
+        if (hasErrors) {
+          return;
+        }
+        
+        // Check if file already exists (this would require server-side validation in a real implementation)
+        // For demo purposes, we'll just warn about potential overwrites
+        toastr.warning(`Poznámka: Pokud ${pageName}.html již existuje, bude při nahrání na server přepsán.`);
+        
+        // Parse the date from the event date string to add to calendar
+        const parsedDate = parseEventDate(eventDate);
+        if (parsedDate) {
+          // Save the event to localStorage for the calendar
+          saveEventToCalendar(pageName, eventTitle, parsedDate);
+        }
+        
+        // Generate HTML content
+        const htmlContent = generateHtmlContent(
+          pageName, eventTitle, eventDate, eventStart, 
+          eventLength, eventElevation, eventPace, 
+          eventCoffee, routeUrl
+        );
+        
+        // Create the file using fetch to a server endpoint
+        // For this demo, we'll show the generated HTML in a console.log
+        console.log(htmlContent);
+        
+        // In a real implementation, you would send this to a server endpoint
+        // that would create the file in the repository
+        
+        // Show success message
+        toastr.success(`Stránka ${pageName}.html byla stažena.`);
+        createModal.style.display = 'none';
+        
+        // Create a download link for the HTML file
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${pageName}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+      
+      
+      function generateHtmlContent(
+        pageName, eventTitle, eventDate, eventStart, 
+        eventLength, eventElevation, eventPace, 
+        eventCoffee, routeUrl
+      ) {
+        return `<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>dohaku</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background-color: #ffffff;
+      color: #222;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    :root {
+      --bg: #f9f9f9;
+      --text: #222;
+      --shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: white;
+      padding: 10px 0;
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header img {
+      height: 40px;
+      margin-left: 30px;
+    }
+
+    nav {
+      display: flex;
+      gap: 10px;
+      margin-right: 30px;
+    }
+
+    nav a img {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+      transition: transform 0.2s;
+    }
+
+    nav a:hover img {
+      transform: scale(1.1);
+    }
+
+    .main {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+      padding: 30px;
+      align-items: stretch;
+    }
+
+    .left, .right {
+      flex: 1;
+      min-width: 300px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .info-box, .route-container {
+      background-color: var(--bg);
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: var(--shadow);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .info-box h2,
+    .route-title {
+      margin-top: 0;
+      font-size: 24px;
+      text-align: center;
+      text-transform: lowercase;
+    }
+
+    .info-box p {
+      font-size: 16px;
+      margin: 8px 0;
+    }
+
+    .responsive-iframe {
+      position: relative;
+      width: 100%;
+      padding-bottom: 52.02%; 
+      height: 0;
+      overflow: hidden;
+      border-radius: 15px;
+      box-shadow: var(--shadow);
+    }
+
+    .responsive-iframe iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    .slogan {
+      padding: 80px 0;
+      text-align: center;
+    }
+
+    .slogan h1 {
+      font-size: 64px;
+      letter-spacing: 4px;
+      margin: 0;
+      color: #222;
+    }
+
+    footer {
+      background-color: #f0f0f0;
+      padding: 8px 0;
+      text-align: center;
+      font-size: 12px;
+      color: #555;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    @media (max-width: 768px) {
+      .main {
+        flex-direction: column;
+        padding: 20px 15px;
+      }
+
+      .slogan {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="index.html">
+      <img src="logo.png" alt="Logo">
+    </a>
+    <nav>
+      <a href="https://www.strava.com/clubs/1535566" target="_blank">
+        <img src="strava.png" alt="Strava">
+      </a>
+      <a href="https://www.instagram.com/dohaku.cc" target="_blank">
+        <img src="instagram.png" alt="Instagram">
+      </a>
+      <a href="https://www.tiktok.com/@dohaku.cc" target="_blank">
+        <img src="tiktok.png" alt="TikTok">
+      </a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="main">
+      <div class="left">
+        <div class="info-box">
+          <h2>${eventTitle}</h2>
+          <p><strong>${eventDate}</strong></p>
+          <p><strong>start</strong> ${eventStart}</p>
+          <p><strong>lenght</strong> ${eventLength}</p>
+          <p><strong>elevation</strong> ${eventElevation}</p>
+          <p><strong>pace</strong> ${eventPace}</p>
+          <p><strong>coffee stop</strong> ${eventCoffee}</p>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="route-container">
+          <div class="route-title"><strong>trasa</strong></div>
+          <div class="responsive-iframe">
+            <iframe src="${routeUrl}" allowfullscreen></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slogan">
+      <h1>ride | discover | belong</h1>
+    </div>
+  </main>
+
+  <footer>
+    &copy; ${new Date().getFullYear()} dohaku.cc | All rights reserved.
+  </footer>
+
+</body>
+</html>`;
+      }
+    });
+  </script>
+</body>
+</html>
