@@ -140,10 +140,6 @@
         toastr.info('Seznam eventů byl obnoven');
       });
       
-      // Nastavení tlačítka uložení změn
-      document.getElementById('save-changes-btn').addEventListener('click', function() {
-        saveChangesToFile();
-      });
       
       // Načtení a zobrazení eventů
       loadEvents();
@@ -181,38 +177,21 @@
       
       // Kontrola, zda je index platný
       if (index < 0 || index >= events.length) {
-        toastr.error('Neplatný index eventu.');
         return;
       }
-      
-      // Získání detailů eventu pro potvrzovací zprávu
-      const event = events[index];
-      const monthNames = [
-        'Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen',
-        'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec'
-      ];
-      const eventDate = `${event.day}. ${monthNames[event.month]} ${event.year}`;
-      
-      // Potvrzení smazání
-      if (confirm(`Opravdu chcete smazat event "${event.title}" dne ${eventDate}?`)) {
-        // Odstranění eventu z pole
-        events.splice(index, 1);
 
-        // Uložíme pouze do localStorage
-        localStorage.setItem('calendarEvents', JSON.stringify(events));
+      // Odstranění eventu z pole
+      events.splice(index, 1);
 
-        // Zobrazení úspěšné zprávy
-        toastr.success('Event byl úspěšně smazán. Klikněte na "Uložit změny" pro stažení aktualizovaného souboru.');
+      // Uložíme do localStorage
+      localStorage.setItem('calendarEvents', JSON.stringify(events));
 
-        // Obnovení seznamu eventů
-        loadEvents();
 
-        // Zobrazení tlačítka pro uložení změn
-        document.getElementById('save-changes-btn').style.display = 'inline-block';
+      // Obnovení seznamu eventů
+      loadEvents();
 
-        // Aktualizace kalendáře na hlavní stránce, pokud je otevřená v jiné záložce
-        localStorage.setItem('calendarUpdated', 'true');
-      }
+      // Aktualizace kalendáře na hlavní stránce, pokud je otevřená v jiné záložce
+      localStorage.setItem('calendarUpdated', 'true');
     }
     
     // Funkce pro načtení eventů ze serveru a jejich zobrazení
@@ -471,34 +450,6 @@
       window.location.href = 'login.html';
     }
     
-    // Funkce pro uložení změn do souboru
-    function saveChangesToFile() {
-      try {
-        // Získání aktuálních eventů z localStorage
-        const events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
-        
-        // Vytvoření JSON souboru ke stažení
-        const blob = new Blob([JSON.stringify(events, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'events.json';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        // Skrytí tlačítka uložení
-        document.getElementById('save-changes-btn').style.display = 'none';
-        
-        // Zobrazení úspěšné zprávy
-        toastr.success('Změny byly uloženy. Nahrajte soubor events.json na server.');
-        
-      } catch (error) {
-        console.error('Chyba při ukládání změn:', error);
-        toastr.error('Chyba při ukládání změn. Zkuste to prosím znovu.');
-      }
-    }
 
     // Funkce pro otevření modálního okna pro vytvoření nového eventu
     function openCreateModal() {
@@ -528,6 +479,311 @@
       form.addEventListener('submit', handlePageCreation);
     }
 
+    // Funkce pro stažení JSON souboru s událostmi
+    function downloadEventsJson(events) {
+      try {
+        console.log('Stahování JSON souboru...');
+        
+        // Vytvoření JSON souboru ke stažení
+        const jsonContent = JSON.stringify(events, null, 2);
+        const blob = new Blob([jsonContent], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        // Vytvoření odkazu pro stažení
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'events.json';
+        a.style.display = 'none';
+        
+        // Přidání do DOM a kliknutí
+        document.body.appendChild(a);
+        a.click();
+        
+        // Vyčištění po krátké době
+        setTimeout(() => {
+          if (document.body.contains(a)) {
+            document.body.removeChild(a);
+          }
+          URL.revokeObjectURL(url);
+        }, 1000);
+
+        toastr.success('JSON soubor se stahuje. Nahrajte ho na server pro sdílení s ostatními.');
+        console.log('JSON download úspěšný');
+        return true;
+        
+      } catch (error) {
+        console.error('Chyba při stahování JSON:', error);
+        toastr.error('Stahování JSON selhalo: ' + error.message);
+        return false;
+      }
+    }
+
+    // Funkce pro vytvoření a stažení HTML stránky eventu
+    function downloadEventHtml(pageName, eventData) {
+      try {
+        console.log('Stahování HTML souboru pro:', pageName);
+        
+        // Vytvoření HTML obsahu stránky
+        const htmlContent = generateEventHtml(pageName, eventData);
+
+        // Vytvoření HTML souboru ke stažení
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        
+        // Vytvoření odkazu pro stažení
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${pageName}.html`;
+        a.style.display = 'none';
+        
+        // Přidání do DOM a kliknutí
+        document.body.appendChild(a);
+        a.click();
+        
+        // Vyčištění po krátké době
+        setTimeout(() => {
+          if (document.body.contains(a)) {
+            document.body.removeChild(a);
+          }
+          URL.revokeObjectURL(url);
+        }, 1000);
+
+        toastr.success(`HTML soubor ${pageName}.html se stahuje. Nahrajte ho na server.`);
+        console.log('HTML download úspěšný pro:', pageName);
+        return true;
+        
+      } catch (error) {
+        console.error('Chyba při stahování HTML:', error);
+        toastr.error('Stahování HTML selhalo: ' + error.message);
+        return false;
+      }
+    }
+
+    // Funkce pro generování HTML obsahu stránky eventu
+    function generateEventHtml(pageName, eventData) {
+      return `<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>dohaku</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background-color: #ffffff;
+      color: #222;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    :root {
+      --bg: #f9f9f9;
+      --text: #222;
+      --shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background-color: white;
+      padding: 10px 0;
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header img {
+      height: 40px;
+      margin-left: 30px;
+    }
+
+    nav {
+      display: flex;
+      gap: 10px;
+      margin-right: 30px;
+    }
+
+    nav a img {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+      transition: transform 0.2s;
+    }
+
+    nav a:hover img {
+      transform: scale(1.1);
+    }
+
+    .main {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+      padding: 30px;
+      align-items: stretch;
+    }
+
+    .left, .right {
+      flex: 1;
+      min-width: 300px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .info-box, .route-container {
+      background-color: var(--bg);
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: var(--shadow);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .info-box h2,
+    .route-title {
+      margin-top: 0;
+      font-size: 24px;
+      text-align: center;
+      text-transform: lowercase;
+    }
+
+    .info-box p {
+      font-size: 16px;
+      margin: 8px 0;
+    }
+
+    .responsive-iframe {
+      position: relative;
+      width: 100%;
+      padding-bottom: 52.02%;
+      height: 0;
+      overflow: hidden;
+      border-radius: 15px;
+      box-shadow: var(--shadow);
+    }
+
+    .responsive-iframe iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+
+    .slogan {
+      padding: 80px 0;
+      text-align: center;
+    }
+
+    .slogan h1 {
+      font-size: 64px;
+      letter-spacing: 4px;
+      margin: 0;
+      color: #222;
+    }
+
+    footer {
+      background-color: #f0f0f0;
+      padding: 8px 0;
+      text-align: center;
+      font-size: 12px;
+      color: #555;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    @media (max-width: 768px) {
+      .main {
+        flex-direction: column;
+        padding: 20px 15px;
+      }
+
+      .slogan {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="index.html">
+    <img src="logo.png" alt="Logo">
+  </a>
+  <nav>
+    <a href="https://www.strava.com/clubs/1535566" target="_blank">
+      <img src="strava.png" alt="Strava">
+    </a>
+    <a href="https://www.instagram.com/dohaku.cc" target="_blank">
+      <img src="instagram.png" alt="Instagram">
+    </a>
+    <a href="https://www.tiktok.com/@dohaku.cc" target="_blank">
+      <img src="tiktok.png" alt="TikTok">
+    </a>
+  </nav>
+</header>
+
+<main>
+  <div class="main">
+    <div class="left">
+      <div class="info-box">
+        <h2>${pageName}</h2>
+        <p><strong>${eventData.date}</strong></p>
+        <p><strong>start</strong> ${eventData.start}</p>
+        <p><strong>lenght</strong> ${eventData.length}</p>
+        <p><strong>elevation</strong> ${eventData.elevation}</p>
+        <p><strong>pace</strong> ${eventData.pace}</p>
+        <p><strong>coffee stop</strong> ${eventData.coffee}</p>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="route-container">
+        <div class="route-title"><strong>trasa</strong></div>
+        <div class="responsive-iframe">
+          <iframe src="${eventData.routeUrl}" allowfullscreen></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slogan">
+    <h1>ride | discover | belong</h1>
+  </div>
+</main>
+
+<footer>
+  &copy; 2025 dohaku.cc | All rights reserved.
+</footer>
+
+</body>
+</html>`;
+    }
+
     // Funkce pro zpracování formuláře vytvoření nové stránky
     function handlePageCreation(event) {
       event.preventDefault();
@@ -538,13 +794,114 @@
       // Zavření modálního okna
       document.getElementById('page-creator-modal').style.display = 'none';
 
-      // Zde by byl kód pro zpracování formuláře a vytvoření nové stránky
-      // ...
+      // Získání hodnot z formuláře
+      const pageName = document.getElementById('page-name').value;
+      const eventTitle = document.getElementById('event-title').value;
+      const eventDate = document.getElementById('event-date').value;
+      const eventStart = document.getElementById('event-start').value;
+      const eventLength = document.getElementById('event-length').value;
+      const eventElevation = document.getElementById('event-elevation').value;
+      const eventPace = document.getElementById('event-pace').value;
+      const eventCoffee = document.getElementById('event-coffee').value;
+      const routeUrl = document.getElementById('route-url').value;
 
-      // Simulace úspěšného vytvoření
-      setTimeout(function() {
-        toastr.success('Nová stránka byla úspěšně vytvořena!');
-      }, 1000);
+      // Parsování data pro vytvoření JSON události
+      let day = new Date().getDate();
+      let month = new Date().getMonth();
+      let year = new Date().getFullYear();
+
+      // Pokus o extrakci data z eventDate
+      try {
+        const dateMatch = eventDate.match(/(\d+)\.\s*([^\s]+)\s*(\d+)?/);
+        if (dateMatch) {
+          day = parseInt(dateMatch[1]);
+          // Převod názvu měsíce na číslo (0-11)
+          const monthNames = [
+            'ledna', 'února', 'března', 'dubna', 'května', 'června',
+            'července', 'srpna', 'září', 'října', 'listopadu', 'prosince',
+            'leden', 'únor', 'březen', 'duben', 'květen', 'červen',
+            'červenec', 'srpen', 'září', 'říjen', 'listopad', 'prosinec'
+          ];
+          const monthIndex = monthNames.findIndex(m => m.toLowerCase() === dateMatch[2].toLowerCase());
+          if (monthIndex !== -1) {
+            month = monthIndex % 12;
+          }
+          if (dateMatch[3]) {
+            year = parseInt(dateMatch[3]);
+          }
+        }
+      } catch (error) {
+        console.error('Chyba při parsování data:', error);
+      }
+
+      // Vytvoření události pro calendar
+      const newEvent = {
+        pageName: pageName,
+        title: eventTitle,
+        day: day,
+        month: month,
+        year: year
+      };
+
+      // Data pro HTML stránku události
+      const eventData = {
+        title: eventTitle,
+        date: eventDate,
+        start: eventStart,
+        length: eventLength,
+        elevation: eventElevation,
+        pace: eventPace,
+        coffee: eventCoffee,
+        routeUrl: routeUrl
+      };
+
+      // Získání aktuálních eventů a přidání nového
+      let events = [];
+      try {
+        events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
+      } catch (error) {
+        console.error('Chyba při načítání událostí:', error);
+      }
+
+      // Přidání nové události
+      events.push(newEvent);
+
+      // Uložení do localStorage (jako záloha)
+      localStorage.setItem('calendarEvents', JSON.stringify(events));
+
+      // HLAVNÍ FUNKCIONALITA: Stažení souborů pro sdílení
+      console.log('=== Zahajuji stahování souborů ===');
+      
+      // Nejprve zkusíme stáhnout JSON (priorita)
+      const jsonSuccess = downloadEventsJson(events);
+      
+      // Po krátké pauze zkusíme stáhnout HTML
+      setTimeout(() => {
+        const htmlSuccess = downloadEventHtml(pageName, eventData);
+        
+        // Kontrola úspěšnosti
+        if (jsonSuccess && htmlSuccess) {
+          toastr.success('✅ Oba soubory se stahují! Nahrajte je na server pro sdílení s ostatními.');
+        } else if (jsonSuccess) {
+          toastr.warning('⚠️ JSON se stáhl, HTML selhal. Nahrajte alespoň JSON na server.');
+        } else if (htmlSuccess) {
+          toastr.warning('⚠️ HTML se stáhl, JSON selhal. Nahrajte HTML na server.');
+        } else {
+          toastr.error('❌ Stahování selhalo. Zkuste to znovu nebo kontaktujte podporu.');
+        }
+        
+        // Instrukce pro uživatele
+        setTimeout(() => {
+          toastr.info('💡 Po stažení nahrajte soubory na server, aby je viděli všichni návštěvníci.', {timeOut: 8000});
+        }, 2000);
+        
+      }, 1500); // Pauza mezi stahováními
+
+      // Event created successfully
+      toastr.success('Event byl úspěšně vytvořen!');
+
+      // Obnovení seznamu eventů
+      loadEvents();
     }
   </script>
 </head>
@@ -576,7 +933,6 @@
       <p>Zobrazte a spravujte všechny eventy v kalendáři.</p>
       <div class="events-header">
         <button id="refresh-events-btn" class="action-btn">Refresh</button>
-        <button id="save-changes-btn" class="action-btn save-btn" style="display: none;">Uložit změny</button>
       </div>
       <div id="events-list" class="events-list">
         <p class="loading-text">Načítání eventů...</p>

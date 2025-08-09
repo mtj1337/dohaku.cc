@@ -123,16 +123,17 @@
       max-width: 620px;
       background-color: var(--primary-bg);
       border-radius: 20px;
-      padding: 20px;
+      padding: 15px;
       box-shadow: var(--shadow);
-      height: 777px; 
-      overflow: hidden;
+      height: 777px;
+      display: flex;
+      flex-direction: column;
     }
 
     .calendar-title {
       font-size: 24px;
       font-weight: bold;
-      margin-bottom: 5px;
+      margin-bottom: 2px;
       color: #333;
       text-align: center;
     }
@@ -142,7 +143,7 @@
       font-weight: normal;
       color: var(--text-gray);
       text-align: center;
-      margin-bottom: 15px;
+      margin-bottom: 8px;
     }
 
     .weekdays {
@@ -150,7 +151,7 @@
       grid-template-columns: repeat(7, 1fr);
       text-align: center;
       font-weight: bold;
-      margin-bottom: 15px;
+      margin-bottom: 2px; /* Ještě menší spodní okraj */
       color: var(--text-gray);
       font-size: 14px;
     }
@@ -158,25 +159,35 @@
     .calendar {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 10px;
+      grid-template-rows: repeat(6, 1fr); /* Přesně 6 řádků pro všechny měsíce */
+      gap: 2px; /* Minimální mezery */
+      flex: 1; /* Vyplní dostupný prostor */
+      margin: 0; /* Bez vnějších okrajů */
     }
 
     .calendar .day {
       background-color: white;
-      border-radius: 12px;
+      border-radius: 8px; /* Ještě menší zaoblení */
       position: relative;
-      height: 90px;
       box-shadow: var(--shadow);
       border: 1px solid var(--light-gray);
+      min-height: 100%; /* Automatická výška podle gridu */
+      display: flex;
+      flex-direction: column;
     }
 
     .calendar .day-number {
       position: absolute;
-      top: 8px;
-      left: 10px;
-      font-size: 16px;
+      top: 4px;
+      left: 6px;
+      font-size: 14px;
       font-weight: bold;
       color: #333;
+    }
+
+    /* Styl pro prázdné dny na konci měsíce */
+    .calendar .empty-day {
+      opacity: 0.4; /* Průhlednost pro prázdné dny */
     }
 
     .calendar .today {
@@ -245,7 +256,7 @@
       }
 
       .calendar {
-        gap: 6px;
+        gap: 1px;
       }
 
       .calendar .day {
@@ -435,7 +446,7 @@
       // Add empty cells for days before the first day of the month
       for (let i = 0; i < firstDayWeekday; i++) {
         const emptyDay = document.createElement('div');
-        emptyDay.className = 'day';
+        emptyDay.className = 'day empty-day'; // Přidání nové třídy pro prázdné dny
         calendarGrid.appendChild(emptyDay);
       }
       
@@ -494,12 +505,13 @@
       }
       
       // Add empty cells for days after the last day of the month to complete the grid
+      // Vždy zobrazujeme 6 řádků (42 buněk) bez ohledu na počet dní v měsíci
       const totalCells = firstDayWeekday + daysInMonth;
-      const remainingCells = Math.ceil(totalCells / 7) * 7 - totalCells;
+      const remainingCells = 42 - totalCells; // Vždy 6 řádků (6 * 7 = 42)
       
       for (let i = 0; i < remainingCells; i++) {
         const emptyDay = document.createElement('div');
-        emptyDay.className = 'day';
+        emptyDay.className = 'day empty-day'; // Přidání nové třídy pro prázdné dny
         calendarGrid.appendChild(emptyDay);
       }
     }
