@@ -9,11 +9,8 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
   <link rel="manifest" href="/site.webmanifest">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    * {
-      box-sizing: border-box;
-    }
-
     :root {
       --primary-bg: #ffffff;
       --light-gray: #e0e0e0;
@@ -22,81 +19,53 @@
     }
 
     body {
-      margin: 0;
       font-family: 'Montserrat', sans-serif;
       background-color: var(--primary-bg);
       color: #222;
-      overflow-x: hidden;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
     }
 
-    header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background-color: var(--primary-bg);
-      padding: 10px 0;
+    .navbar {
       box-shadow: var(--shadow);
-      position: sticky;
-      top: 0;
-      z-index: 10;
     }
 
-    header img {
+    .navbar-brand img {
       height: 40px;
-      margin-left: 30px; 
     }
 
-    nav {
-      display: flex;
-      gap: 10px;
-      margin-right: 30px;
-    }
-
-    nav a img {
+    .social-icons a img {
       width: 28px;
       height: 28px;
       object-fit: contain;
       transition: transform 0.2s;
     }
 
-    nav a:hover img {
+    .social-icons a:hover img {
       transform: scale(1.1);
     }
 
-    .main {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 30px;
-      padding: 30px;
-      align-items: flex-start;
-      width: 100%;
-      flex: 1;
-    }
-
-    .left {
-      flex: 1;
-      min-width: 300px;
-      max-height: 780px; 
+    .hero-section {
       position: relative;
+      min-height: 400px;
+      max-height: 780px;
       border-radius: 15px;
       overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
 
-    .left img {
+    .hero-section img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       filter: brightness(60%);
+      position: absolute;
+      top: 0;
+      left: 0;
     }
 
-    .left .overlay {
-      position: absolute;
+    .hero-overlay {
+      position: relative;
       z-index: 2;
       background-color: rgba(255, 255, 255, 0.8);
       color: #222;
@@ -107,20 +76,7 @@
       box-shadow: var(--shadow);
     }
 
-    .left .overlay button {
-      margin-top: 10px;
-      padding: 8px 12px;
-      background-color: #464545;
-      border: none;
-      color: white;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-
     .calendar-container {
-      flex: 1.3;
-      min-width: 360px;
-      max-width: 620px;
       background-color: var(--primary-bg);
       border-radius: 20px;
       padding: 15px;
@@ -151,7 +107,7 @@
       grid-template-columns: repeat(7, 1fr);
       text-align: center;
       font-weight: bold;
-      margin-bottom: 2px; /* Ještě menší spodní okraj */
+      margin-bottom: 2px;
       color: var(--text-gray);
       font-size: 14px;
     }
@@ -159,19 +115,19 @@
     .calendar {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      grid-template-rows: repeat(6, 1fr); /* Přesně 6 řádků pro všechny měsíce */
-      gap: 2px; /* Minimální mezery */
-      flex: 1; /* Vyplní dostupný prostor */
-      margin: 0; /* Bez vnějších okrajů */
+      grid-template-rows: repeat(6, 1fr);
+      gap: 2px;
+      flex: 1;
+      margin: 0;
     }
 
     .calendar .day {
       background-color: white;
-      border-radius: 8px; /* Ještě menší zaoblení */
+      border-radius: 8px;
       position: relative;
       box-shadow: var(--shadow);
       border: 1px solid var(--light-gray);
-      min-height: 100%; /* Automatická výška podle gridu */
+      min-height: 100%;
       display: flex;
       flex-direction: column;
     }
@@ -185,15 +141,13 @@
       color: #333;
     }
 
-    /* Styl pro prázdné dny na konci měsíce */
     .calendar .empty-day {
-      opacity: 0.4; /* Průhlednost pro prázdné dny */
+      opacity: 0.4;
     }
 
     .calendar .today {
       background-color: #c2c1c1;
       border-color: #a8a8a8;
-      /* Zvýrazňuje dny, kdy se konají události */
     }
 
     .calendar .day a {
@@ -214,30 +168,12 @@
       background-color: rgba(0, 0, 0, 0.3);
     }
 
-    footer {
-      background-color: #f0f0f0;
-      padding: 8px 0;
-      text-align: center;
-      font-size: 12px;
-      color: #555;
-      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
-    }
-
     .info-label::before {
       content: "info";
     }
 
     @media (max-width: 768px) {
-      .main {
-        flex-direction: column;
-        padding: 20px 15px;
-        align-items: stretch;
-        flex: 1;
-      }
-
       .calendar-container {
-        max-width: 100%;
-        width: 100%;
         height: auto;
         padding: 15px;
       }
@@ -269,22 +205,13 @@
         left: 8px;
       }
 
-      .left {
+      .hero-section {
         max-height: 380px;
-        width: 100%;
       }
 
-      .left .overlay {
+      .hero-overlay {
         padding: 15px;
         font-size: 14px;
-      }
-
-      header img {
-        margin-left: 15px;
-      }
-
-      nav {
-        margin-right: 15px;
       }
 
       .info-label::before {
@@ -295,83 +222,81 @@
 </head>
 <body>
 
-  <header>
-    <img src="logo.png" alt="Logo">
-    <nav>
-      <a href="https://www.strava.com/clubs/1535566" target="_blank">
-        <img src="strava.png" alt="Strava">
+  <nav class="navbar navbar-expand navbar-light bg-white sticky-top">
+    <div class="container-fluid px-4">
+      <a class="navbar-brand" href="#">
+        <img src="logo.png" alt="Logo">
       </a>
-      <a href="https://www.instagram.com/dohaku.cc" target="_blank">
-        <img src="instagram.png" alt="Instagram">
-      </a>
-      <a href="https://www.tiktok.com/@dohaku.cc" target="_blank">
-        <img src="tiktok.png" alt="TikTok">
-      </a>
-    </nav>
-  </header>
-
-  <div class="main">
-    <div class="left">
-      <img src="fotka.jpg" alt="bs">
-      <div class="overlay">
-        <h2>ride | discover | belong</h2>
-        <p>Jsme komunita lidí, co ráda objevuje, jezdí a tráví čas spolu.</p>
+      <div class="social-icons d-flex gap-2">
+        <a href="https://www.strava.com/clubs/1535566" target="_blank">
+          <img src="strava.png" alt="Strava">
+        </a>
+        <a href="https://www.instagram.com/dohaku.cc" target="_blank">
+          <img src="instagram.png" alt="Instagram">
+        </a>
+        <a href="https://www.tiktok.com/@dohaku.cc" target="_blank">
+          <img src="tiktok.png" alt="TikTok">
+        </a>
       </div>
     </div>
+  </nav>
 
-    <div class="calendar-container">
-      <h2 class="calendar-title">Kalendář akcí</h2>
-      <div id="calendar-month" class="calendar-month">Načítání...</div>
-
-      <div class="weekdays">
-        <div>Po</div><div>Út</div><div>St</div><div>Čt</div><div>Pá</div><div>So</div><div>Ne</div>
+  <main class="container-fluid flex-grow-1 py-4 px-4">
+    <div class="row g-4">
+      <div class="col-lg-5">
+        <div class="hero-section d-flex align-items-center justify-content-center h-100">
+          <img src="fotka.jpg" alt="bs">
+          <div class="hero-overlay">
+            <h2>ride | discover | belong</h2>
+            <p>Jsme komunita lidí, co ráda objevuje, jezdí a tráví čas spolu.</p>
+          </div>
+        </div>
       </div>
 
-      <div id="calendar" class="calendar">
-        <!-- Calendar will be generated by JavaScript -->
+      <div class="col-lg-7">
+        <div class="calendar-container">
+          <h2 class="calendar-title">Kalendář akcí</h2>
+          <div id="calendar-month" class="calendar-month">Načítání...</div>
+
+          <div class="weekdays">
+            <div>Po</div><div>Út</div><div>St</div><div>Čt</div><div>Pá</div><div>So</div><div>Ne</div>
+          </div>
+
+          <div id="calendar" class="calendar">
+            <!-- Calendar will be generated by JavaScript -->
+          </div>
+        </div>
       </div>
     </div>
-  </div>
+  </main>
 
-  <footer>
-    &copy; <span id="current-year">2025</span> dohaku.cc | All rights reserved.
+  <footer class="bg-light text-center py-2 mt-auto">
+    <small class="text-muted">&copy; <span id="current-year">2025</span> dohaku.cc | All rights reserved.</small>
   </footer>
 
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      // Initialize the calendar
       updateCalendar();
-      
-      // Update the year in the footer
       document.getElementById('current-year').textContent = new Date().getFullYear();
-      
-      // Set up automatic refresh every hour
-      setInterval(updateCalendar, 3600000); // 1 hour in milliseconds
-      
-      // Check for calendar updates every 5 seconds (for changes made in admin panel)
+      setInterval(updateCalendar, 3600000);
       setInterval(checkForCalendarUpdates, 5000);
     });
-    
-    // Function to check if calendar has been updated in another tab or na serveru
+
     function checkForCalendarUpdates() {
       const calendarUpdated = localStorage.getItem('calendarUpdated');
       if (calendarUpdated === 'true') {
-        // Clear the flag
         localStorage.setItem('calendarUpdated', 'false');
-        // Update the calendar
         updateCalendar();
         console.log('Calendar updated due to changes in admin panel');
         return;
       }
 
-      // Také kontrolujeme, zda nebyly provedeny změny na serveru
       fetch('events.json?cachebust=' + new Date().getTime())
         .then(response => response.json())
         .then(serverEvents => {
-          // Porovnáme se současnými událostmi v localStorage
           try {
             const localEvents = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
-            // Jednoduchá kontrola, zda je počet událostí stejný
             if (JSON.stringify(serverEvents) !== JSON.stringify(localEvents)) {
               console.log('Detected calendar updates from server');
               updateCalendar();
@@ -384,44 +309,34 @@
           console.error('Error checking for server updates:', error);
         });
     }
-    
+
     function updateCalendar() {
-      // Get current date
       const currentDate = new Date();
       const currentMonth = currentDate.getMonth();
       const currentYear = currentDate.getFullYear();
-      
-      // Create a date object for the first day of the current month
+
       const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
       const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
-      
-      // Get the day of the week for the first day (0 = Sunday, 1 = Monday, etc.)
+
       let firstDayWeekday = firstDayOfMonth.getDay();
-      // Adjust for Monday as first day of week (0 = Monday, 6 = Sunday)
       firstDayWeekday = firstDayWeekday === 0 ? 6 : firstDayWeekday - 1;
-      
-      // Get the number of days in the current month
+
       const daysInMonth = lastDayOfMonth.getDate();
-      
-      // Update the month and year display
+
       const monthNames = [
         'Leden', 'Únor', 'Březen', 'Duben', 'Květen', 'Červen',
         'Červenec', 'Srpen', 'Září', 'Říjen', 'Listopad', 'Prosinec'
       ];
       document.getElementById('calendar-month').textContent = `${monthNames[currentMonth]} ${currentYear}`;
-      
-      // Načtení událostí ze serveru
+
       fetch('events.json')
         .then(response => response.json())
         .then(serverEvents => {
-          // Uložíme do localStorage pro kompatibilitu
           localStorage.setItem('calendarEvents', JSON.stringify(serverEvents));
-          // Pokračujeme s vykreslením kalendáře
           renderCalendar(serverEvents, currentMonth, currentYear, firstDayWeekday, daysInMonth);
         })
         .catch(error => {
           console.error('Error loading events from server:', error);
-          // Fallback na localStorage v případě chyby
           let events = [];
           try {
             events = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
@@ -430,48 +345,39 @@
           }
           renderCalendar(events, currentMonth, currentYear, firstDayWeekday, daysInMonth);
         });
-          }
+    }
 
-          // Function to render the calendar with events
-          function renderCalendar(events, currentMonth, currentYear, firstDayWeekday, daysInMonth) {
-      // Filter events for the current month and year
-      const currentMonthEvents = events.filter(event => 
+    function renderCalendar(events, currentMonth, currentYear, firstDayWeekday, daysInMonth) {
+      const currentMonthEvents = events.filter(event =>
         event.month === currentMonth && event.year === currentYear
       );
-      
-      // Generate the calendar grid
+
       const calendarGrid = document.getElementById('calendar');
       calendarGrid.innerHTML = '';
-      
-      // Add empty cells for days before the first day of the month
+
       for (let i = 0; i < firstDayWeekday; i++) {
         const emptyDay = document.createElement('div');
-        emptyDay.className = 'day empty-day'; // Přidání nové třídy pro prázdné dny
+        emptyDay.className = 'day empty-day';
         calendarGrid.appendChild(emptyDay);
       }
-      
-      // Add cells for each day of the month
+
       for (let day = 1; day <= daysInMonth; day++) {
         const dayCell = document.createElement('div');
         dayCell.className = 'day';
-        
-        // Get events for this day
-        const hasHardcodedEvent = (currentMonth === 5 && day === 8); // Teplice event on June 8th
+
+        const hasHardcodedEvent = (currentMonth === 5 && day === 8);
         const dayEvents = currentMonthEvents.filter(event => event.day === day);
         const hasEvents = hasHardcodedEvent || dayEvents.length > 0;
 
-        // Mark days with events instead of current day
         if (hasEvents) {
           dayCell.classList.add('today');
         }
 
-        // Add the day number
         const dayNumber = document.createElement('div');
         dayNumber.className = 'day-number';
         dayNumber.textContent = day;
         dayCell.appendChild(dayNumber);
 
-        // Add hardcoded event for June 8th (teplice event)
         if (hasHardcodedEvent) {
           const eventLink = document.createElement('a');
           eventLink.href = 'teplice.html';
@@ -483,35 +389,31 @@
           dayCell.appendChild(eventLink);
         }
 
-        // Add dynamic events from the loaded events
         for (const event of dayEvents) {
-          // Skip if it's the teplice event we already added
           if (currentMonth === 5 && day === 8 && event.pageName === 'teplice') {
             continue;
           }
-          
+
           const eventLink = document.createElement('a');
           eventLink.href = `${event.pageName}.html`;
-          
+
           const infoLabel = document.createElement('span');
           infoLabel.className = 'info-label';
           infoLabel.title = event.title;
-          
+
           eventLink.appendChild(infoLabel);
           dayCell.appendChild(eventLink);
         }
-        
+
         calendarGrid.appendChild(dayCell);
       }
-      
-      // Add empty cells for days after the last day of the month to complete the grid
-      // Vždy zobrazujeme 6 řádků (42 buněk) bez ohledu na počet dní v měsíci
+
       const totalCells = firstDayWeekday + daysInMonth;
-      const remainingCells = 42 - totalCells; // Vždy 6 řádků (6 * 7 = 42)
-      
+      const remainingCells = 42 - totalCells;
+
       for (let i = 0; i < remainingCells; i++) {
         const emptyDay = document.createElement('div');
-        emptyDay.className = 'day empty-day'; // Přidání nové třídy pro prázdné dny
+        emptyDay.className = 'day empty-day';
         calendarGrid.appendChild(emptyDay);
       }
     }
